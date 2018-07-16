@@ -1,0 +1,49 @@
+tar zxvf mysql-5.7.20-linux-glibc2.12-x86_64.tar.gz
+mv mysql-5.7.20-linux-glibc2.12-x86_64 /usr/local/mysql
+cd /usr/local/mysql
+useradd -s /sbin/nologin -M mysql
+mkdir -p {etc,logs}
+bin/mysqld --initialize --basedir=/usr/local/mysql/ --datadir=/usr/local/mysql/data --user=mysql 
+
+二进制包初始化会直接输出日志
+chown -R mysql .
+创建配置文件
+vi etc/my.cnf
+[mysqld]
+daemonize = on
+user = mysql
+port = 3306
+basedir = /usr/local/mysql
+datadir = /usr/local/mysql/data
+socket = /tmp/mysql.sock
+bind-address = 0.0.0.0
+pid-file = /usr/local/mysql/mysqld.pid
+character-set-server = utf8
+collation-server = utf8_general_ci
+max_connections = 1024
+log-error = /usr/local/mysql/logs/mysqld.log
+4）systemd 管理 MySQL 服务
+vi /lib/systemd/system/mysqld.service
+[Unit]
+Description=MySQL Server
+Documentation=man:mysqld(8)
+Documentation=http://dev.mysql.com/doc/refman/en/using-systemd.html
+After=network.target
+After=syslog.target
+[Install]
+WantedBy=multi-user.target
+[Service]
+User=mysql
+
+Type=forking
+TimeoutSec=0
+PermissionsStartOnly=true
+ExecStart=/usr/local/mysql/bin/mysqld --defaults-file=/usr/local/mysql/etc/my.cnf
+LimitNOFILE = 5000
+Restart=on-failure
+RestartPreventExitStatus=1
+PrivateTmp=false
+
+启动服务：
+systemctl start mysqld
+systemctl enable mysqld
